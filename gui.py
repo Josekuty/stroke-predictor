@@ -26,7 +26,18 @@ st.write("Enter patient details below to predict stroke risk.")
 # Input fields in the main area (no sidebar)
 gender = st.selectbox("Gender", ["Male", "Female", "Other"])
 age = st.number_input("Age", min_value=1, max_value=100, value=25, step=1)
-bmi = st.number_input("BMI (kg/m²)", min_value=15.0, max_value=50.0, value=29.0, step=0.1)
+use_bmi_calc =st.checkbox("🧮 Calculate Your BMI (Optional)")
+ 
+if use_bmi_calc:
+    weight = st.number_input("Weight (kg) ⚖️", min_value=30.0, max_value=200.0, value=70.0, step=0.5)
+    height = st.number_input("Height (cm) 📏", min_value=100.0, max_value=250.0, value=170.0, step=0.5)
+    if height > 0:
+        bmi = round(weight / ((height / 100) ** 2), 1)
+        st.success(f"Your calculated BMI is: **{bmi} kg/m²**")
+    else:
+        st.warning("Please enter a valid height.")
+else:
+    bmi = st.number_input("BMI (kg/m²) 🏋️", min_value=15.0, max_value=50.0, value=29.0, step=0.1)
 glucose = st.number_input("Average Glucose Level (mg/dL)", min_value=60.0, max_value=250.0, value=106.0, step=1.0)
 hypertension_input = st.selectbox("Hypertension", ["No", "Yes"])
 heart_disease_input = st.selectbox("Heart Disease", ["No", "Yes"])
