@@ -3,26 +3,21 @@ import pandas as pd
 import joblib
 from sklearn.preprocessing import LabelEncoder
 
+# --- Page Config ---
 st.set_page_config(
     page_title="🧠 Stroke Risk Predictor",
     page_icon="🩺",
-    layout="wide",                # better for side-by-side columns
-    initial_sidebar_state="collapsed"  # or "auto", or "expanded"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# --- Page Background Color ---
+# --- Background + Button Style ---
 st.markdown("""
 <style>
-body {
-    background-color: #34495e;  /* Alice Blue */
+html, body, .stApp {
+    background-color: #f5fffa;  /* Mint cream background */
+    color: black;
 }
-</style>
-""", unsafe_allow_html=True)
-
-
-# --- Global Styles ---
-st.markdown("""
-<style>
 div.stButton > button:first-child {
     display: block;
     margin: 30px auto;
@@ -31,7 +26,6 @@ div.stButton > button:first-child {
     font-size: 22px;
     padding: 1rem 2rem;
     border-radius: 10px;
-    transition: background-color 0.3s ease;
 }
 div.stButton > button:hover {
     background-color: #2c80b4;
@@ -39,7 +33,7 @@ div.stButton > button:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# --- Load model and data ---
+# --- Load Model and Data ---
 model = joblib.load("stroke_model.pkl")
 model_columns = joblib.load("model_columns.pkl")
 
@@ -50,7 +44,31 @@ def load_data():
 
 df = load_data()
 
-# --- Header ---
+# --- Define the Dialog ---
+@st.dialog("🧠 Stroke Prediction Result")
+def show_result(risk_score, details=None):
+    st.markdown(f"<h3 style='text-align:center;'>🧪 Risk Score: {risk_score}/10</h3>", unsafe_allow_html=True)
+
+    if risk_score >= 7:
+        st.error("⚠️ High Risk of Stroke!\n\nPlease consult a medical professional urgently.")
+    elif risk_score >= 4:
+        st.warning("🟠 Medium Risk of Stroke\n\nKeep monitoring health indicators.")
+    else:
+        st.success("🟢 Low Risk of Stroke\n\nStay healthy and active!")
+
+    if st.checkbox("📊 Show Explanation"):
+        st.markdown("<h4 style='text-align: center;'>🔍 Risk Factor Breakdown</h4>", unsafe_allow_html=True)
+        for line in details:
+            st.write(line)
+
+        st.markdown("---")
+        st.markdown("<h4 style='text-align: center;'>📘 Risk Score Guide</h4>", unsafe_allow_html=True)
+        st.info("**0–3**: Low risk\n\n**4–6**: Medium risk\n\n**7–10**: High risk")
+
+    if st.button("❌ Close"):
+        st.rerun()
+
+# --- App Header ---
 st.markdown("<h1 style='text-align: center; color:#0077b6;'>🧠 Stroke Risk Predictor</h1>", unsafe_allow_html=True)
 st.markdown("### 📝 Enter the patient information below")
 
@@ -59,7 +77,7 @@ st.divider()
 st.markdown("#### 👤 Basic Info")
 col1, col2 = st.columns(2)
 with col1:
-    gender = st.selectbox("Gender ⚧️", ["Male", "Female", "Other"])
+    gender = st.radio("Gender ⚧️", ["Male", "Female", "Other"], horizontal=True)
 with col2:
     age = st.number_input("Age 🔢", 1, 100, 25)
 
@@ -92,19 +110,19 @@ st.markdown("""
 col1, col2 = st.columns(2)
 with col1:
     st.markdown("**🩺 Health Info**")
-    glucose = st.number_input("Glucose Level 🩸", 60.0, 250.0, 106.0,1.0)
     hypertension_input = st.radio("Hypertension 💊", ["No", "Yes"], horizontal=True)
     heart_disease_input = st.radio("Heart Disease 🫀", ["No", "Yes"], horizontal=True)
+    glucose = st.number_input("Glucose Level 🩸", 60.0, 250.0, 106.0,1.0)
 
 with col2:
     st.markdown("**🏠 Lifestyle Info**")
     ever_married = st.radio("Ever Married 👨‍👩‍👧‍👦", ["No", "Yes"], horizontal=True)
-    residence_type = st.selectbox("Residence Type 🏠", ["Urban", "Rural"])
-    smoking_status = st.selectbox("Smoking Status 🚬", ['formerly smoked', 'never smoked', 'smokes'])
+    residence_type = st.radio("Residence Type 🏠", ["Urban", "Rural"], horizontal=True)
+    smoking_status = st.radio("Smoking Status 🚬", ['formerly smoked', 'never smoked', 'smokes'], horizontal=True)
 
-work_type = st.selectbox("Work Type 💼", df["work_type"].unique())
+work_type = st.selectbox("Work Nature 💼", df["work_type"].unique())
 
-# --- Encode inputs ---
+# --- Encode Inputs ---
 le = LabelEncoder()
 input_data = {
     'hypertension': 1 if hypertension_input == 'Yes' else 0,
@@ -120,44 +138,27 @@ input_data = {
 }
 input_df = pd.DataFrame([input_data]).reindex(columns=model_columns, fill_value=0)
 
-# --- Track Predict Button Click ---
-if "predict_clicked" not in st.session_state:
-    st.session_state.predict_clicked = False
-
+# --- Predict Button ---
 if st.button("🔍 Predict Stroke Risk"):
-    st.session_state.predict_clicked = True
+    # model prediction optional (e.g., model.predict(input_df)[0])
 
-# --- Prediction Result Expander ---
-if st.session_state.predict_clicked:
-    with st.expander("🧠 Stroke Prediction Result", expanded=True):
-        age_risk = 2 if age >= 60 else (1 if age >= 45 else 0)
-        heart_risk = 2 if heart_disease_input == 'Yes' else 0
-        hyper_risk = 2 if hypertension_input == 'Yes' else 0
-        smoke_risk = 2 if smoking_status == "smokes" else (1 if smoking_status == "formerly smoked" else 0)
-        glucose_risk = 1 if glucose > 140 else 0
-        bmi_risk = 1 if bmi > 30 else 0
-        risk_score = age_risk + heart_risk + hyper_risk + smoke_risk + glucose_risk + bmi_risk
+    # Risk Score Calculation
+    age_risk = 2 if age >= 60 else (1 if age >= 45 else 0)
+    heart_risk = 2 if heart_disease_input == 'Yes' else 0
+    hyper_risk = 2 if hypertension_input == 'Yes' else 0
+    smoke_risk = 2 if smoking_status == "smokes" else (1 if smoking_status == "formerly smoked" else 0)
+    glucose_risk = 1 if glucose > 140 else 0
+    bmi_risk = 1 if bmi > 30 else 0
+    risk_score = age_risk + heart_risk + hyper_risk + smoke_risk + glucose_risk + bmi_risk
 
-        st.markdown("---")
-        st.markdown(f"<h3 style='text-align:center;'>🧪 Risk Score: {risk_score}/10</h3>", unsafe_allow_html=True)
+    explanation = [
+        f"• Age: {'2 (60+)' if age >= 60 else '1 (45–59)' if age >= 45 else '0 (<45)'}",
+        f"• Heart Disease: {'2' if heart_disease_input == 'Yes' else '0'}",
+        f"• Hypertension: {'2' if hypertension_input == 'Yes' else '0'}",
+        f"• Smoking: {'2 (current)' if smoking_status == 'smokes' else '1 (former)' if smoking_status == 'formerly smoked' else '0 (never)'}",
+        f"• Glucose: {'1 (>140)' if glucose > 140 else '0 (≤140)'}",
+        f"• BMI: {'1 (>30)' if bmi > 30 else '0 (≤30)'}"
+    ]
 
-        if risk_score >= 7:
-            st.error("⚠️ High Risk of Stroke!\n\nPlease consult a medical professional urgently.")
-        elif risk_score >= 4:
-            st.warning("🟠 Medium Risk of Stroke\n\nKeep monitoring health indicators.")
-        else:
-            st.success("🟢 Low Risk of Stroke\n\nStay healthy and active!")
-
-    # --- Explanation shown on right side if checkbox selected ---
-    if st.checkbox("📊 Show Explanation"):
-            st.markdown("### 🔍 Risk Factor Breakdown")
-            st.write(f"• Age: {'2 (60+)' if age >= 60 else '1 (45–59)' if age >= 45 else '0 (<45)'}")
-            st.write(f"• Heart Disease: {'2' if heart_disease_input == 'Yes' else '0'}")
-            st.write(f"• Hypertension: {'2' if hypertension_input == 'Yes' else '0'}")
-            st.write(f"• Smoking: {'2 (current)' if smoking_status == 'smokes' else '1 (former)' if smoking_status == 'formerly smoked' else '0 (never)'}")
-            st.write(f"• Glucose: {'1 (>140)' if glucose > 140 else '0 (≤140)'}")
-            st.write(f"• BMI: {'1 (>30)' if bmi > 30 else '0 (≤30)'}")
-
-            st.markdown("---")
-            st.markdown("### 📘 Risk Score Guide")
-            st.info("**0–3**: Low risk\n\n**4–6**: Medium risk\n\n**7–10**: High risk")
+    # Show in dialog box
+    show_result(risk_score, explanation)
