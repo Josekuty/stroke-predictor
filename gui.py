@@ -92,7 +92,7 @@ st.markdown("""
 col1, col2 = st.columns(2)
 with col1:
     st.markdown("**🩺 Health Info**")
-    glucose = st.number_input("Glucose Level 🩸", 60.0, 250.0, 106.0,1)
+    glucose = st.number_input("Glucose Level 🩸", 60.0, 250.0, 106.0,1.0)
     hypertension_input = st.radio("Hypertension 💊", ["No", "Yes"], horizontal=True)
     heart_disease_input = st.radio("Heart Disease 🫀", ["No", "Yes"], horizontal=True)
 
